@@ -1,70 +1,39 @@
-// Selecting elements for the forgot password flow
 const forgotPasswordLink = document.getElementById('forgotPassword');
 
-// Event listener for when the user clicks "Forgot password?"
 forgotPasswordLink.addEventListener('click', async () => {
-  // Step 1: Ask for the email address
-  const email = prompt('Enter your email linked to the account:');
+  const email = await askForInput('Enter your email linked to the account:');
 
   if (email) {
     try {
-      // Step 2: Send request to the backend to get the reset token
       const response = await fetch('https://localhost:7131/api/Password/forgot-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const resetToken = data.resetToken;
+        alert('A reset token has been sent to your email.');
+        const token = await askForInput('Enter the token you received:');
+        const newPassword = await askForInput('Enter your new password:', true);
+        const confirmPassword = await askForInput('Confirm your new password:', true);
 
-        // Step 2a: Show the token to the user
-        alert('Here is your reset token: ' + resetToken);
+        if (newPassword === confirmPassword) {
+          const resetResponse = await fetch(`https://localhost:7131/api/Password/reset-password/${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ NewPassword: newPassword, ConfirmPassword: confirmPassword }),
+          });
 
-        // Step 3: Ask for the token
-        const token = prompt('Enter the token you received:');
-        
-        if (token === resetToken) {
-          // Step 4: Ask for the new password and confirm password
-          const newPassword = prompt('Enter your new password:');
-          const confirmPassword = prompt('Confirm your new password:');
-          
-          // Step 5: Validate passwords and send to the backend
-          if (newPassword && confirmPassword) {
-            if (newPassword === confirmPassword) {
-              // Send the reset request to the backend
-              const resetResponse = await fetch(`https://localhost:7131/api/Password/reset-password/${resetToken}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  NewPassword: newPassword,
-                  ConfirmPassword: confirmPassword
-                })
-              });
-
-              if (resetResponse.ok) {
-                alert('Password has been reset successfully!');
-              } else {
-                const errorData = await resetResponse.json();
-                alert('Error resetting password: ' + errorData);
-              }
-            } else {
-              alert('Passwords do not match!');
-            }
+          if (resetResponse.ok) {
+            alert('Password has been reset successfully!');
           } else {
-            alert('Please fill in both password fields.');
+            alert('Failed to reset password. Please check your token and try again.');
           }
         } else {
-          alert('Invalid token. Please try again.');
+          alert('Passwords do not match!');
         }
       } else {
-        const errorData = await response.json();
-        alert('Error: ' + errorData);
+        alert('Failed to send reset token. Please check your email and try again.');
       }
     } catch (error) {
       console.error('Error during the forgot password process:', error);
@@ -74,3 +43,33 @@ forgotPasswordLink.addEventListener('click', async () => {
     alert('Please enter a valid email.');
   }
 });
+
+// Helper function for modal input
+function askForInput(message, isPassword = false) {
+  return new Promise((resolve) => {
+    const inputContainer = document.createElement('div');
+    inputContainer.classList.add('modal');
+
+    const label = document.createElement('p');
+    label.textContent = message;
+    inputContainer.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = isPassword ? 'password' : 'text';
+    input.classList.add('modal-input');
+    inputContainer.appendChild(input);
+
+    const button = document.createElement('button');
+    button.textContent = 'Submit';
+    button.classList.add('modal-button');
+    inputContainer.appendChild(button);
+
+    document.body.appendChild(inputContainer);
+
+    button.addEventListener('click', () => {
+      const value = input.value.trim();
+      document.body.removeChild(inputContainer);
+      resolve(value);
+    });
+  });
+}

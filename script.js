@@ -1,6 +1,6 @@
 const container = document.querySelector(".container"),
   pwShowHide = document.querySelectorAll(".showHidePw"),
-  pwFields = document.querySelectorAll(".password"),
+  pwFields = document.querySelectorAll('input[type="password"]'),
   signUp = document.querySelector(".signup-link"),
   login = document.querySelector(".login-link");
 
